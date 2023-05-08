@@ -1,0 +1,1063 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Automatizar integraciones" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 856/122 ab" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Paso uno" enabled="false">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/abbvie_qa/intercambio/856_122&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:/Users/flore/OneDrive/Escritorio/descarga/856input_20230419090646549.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Paso dos" enabled="false">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+def downloadDir = &quot;‪C:/Users/flore/OneDrive/Escritorio/descarga&quot;
+def remoteDir = &quot;/abbvie_qa/intercambio/856_122/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Paso tres" enabled="false">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;C:/Users/flore/OneDrive/Escritorio/descarga/responsive856_122.txt&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;C:/Users/flore/OneDrive/Escritorio/descarga/shift_abbvie_YYYYMMDDHHMMSS_856.json&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 832/119 ab" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/abbvie_qa/intercambio/832_119&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:Users\flore\OneDrive\Escritorio\descarga\832input_20230412094332351.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/abbvie_qa/intercambio/832_119/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;C:/Users/Usuario/Desktop/descargas/responsive856_122.txt&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;‪‪C:\Users\flore\OneDrive\Escritorio\descarga&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 947/142 ab" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/abbvie_qa/intercambio/947_142&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:\Users\flore\OneDrive\Escritorio\descarga\caso1_20230420170607630.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/abbvie_qa/intercambio/947_142/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;‪C:\Users\flore\OneDrive\Escritorio\descarga\responsive.230507151927&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;‪C:\Users\flore\OneDrive\Escritorio\descarga\947.CSV.ANDREANI.230507151927&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 947/126 ab" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{		&#xd;
+    &quot;NovedadAjusteTraslado&quot;: {		&#xd;
+        &quot;Nombre&quot;: &quot;Ajuste de articulos&quot;,		&#xd;
+        &quot;FechaHoraGeneracion&quot;: 1674644703774,		&#xd;
+        &quot;Almacen&quot;: &quot;wmwhse3&quot;,		&#xd;
+        &quot;Propietario&quot;: &quot;ABBVIE&quot;,		&#xd;
+    },		&#xd;
+    &quot;Cabecera&quot;: {		&#xd;
+        &quot;SKU&quot;: &quot;20011289&quot;,		&#xd;
+        &quot;Descripcion&quot;: &quot;RITONAVIR  COMP. REC. X 30&quot;,		&#xd;
+        &quot;CodigoOrigenWH&quot;: &quot;0000000126&quot;,		&#xd;
+        &quot;CodigoOrigenExterno&quot;: &quot;&quot;,		&#xd;
+        &quot;ContratoServicioIngreso&quot;: &quot;&quot;,		&#xd;
+        &quot;StockAnteriorSKU&quot;: 500,		&#xd;
+        &quot;StockTotalSKU&quot;: 505,		&#xd;
+        &quot;StockDisponibleSKU&quot;: 505,		&#xd;
+        &quot;StockEnTransitoSKU&quot;: 0		&#xd;
+    },		&#xd;
+    &quot;Detalle&quot;: [{		&#xd;
+            &quot;MotivoAjuste&quot;: &quot;Physical Inventory Positive&quot;,		&#xd;
+            &quot;LineaExterna&quot;: &quot;&quot;,		&#xd;
+            &quot;PaqueteLote&quot;: &quot;INT1160822&quot;,		&#xd;
+            &quot;LoteCajitaFabricante&quot;: &quot;INT1160822&quot;,		&#xd;
+            &quot;LoteSecundario&quot;: &quot;INT1160822&quot;,		&#xd;
+            &quot;FechaFabricacion&quot;: null,		&#xd;
+            &quot;FechaVencimiento&quot;: null,		&#xd;
+            &quot;ProductoTrazable&quot;: &quot; &quot;,		&#xd;
+            &quot;AlmacenConsumo&quot;: &quot; &quot;,		&#xd;
+            &quot;EstadoLote&quot;: &quot;OK&quot;,		&#xd;
+            &quot;BloqueoUbicacion&quot;: &quot; &quot;,		&#xd;
+            &quot;VidaUtilLote&quot;: &quot; &quot;,		&#xd;
+            &quot;Lpn&quot;: &quot; &quot;,		&#xd;
+            &quot;EntregaAntesDe&quot;: null,		&#xd;
+            &quot;ConsumoAntesDe&quot;: null,		&#xd;
+            &quot;StockEvento&quot;: 5,		&#xd;
+            &quot;StockEnTransito&quot;: 0		&#xd;
+        }		&#xd;
+    ]		&#xd;
+}		</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">distributor-test.api.flexipaas.com</stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol">https</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">/services/rest/selector/andreani</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
+          <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">true</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="false">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/abbvie_qa/intercambio/947_126/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="false">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;C:\Users\flore\OneDrive\Escritorio\descarga\947.CSV.ANDREANI.050523162858226&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;C:/Users/Usuario/Desktop/descargas/shift_abbvie_20230427084359_856.json&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 888/119 az" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/opendev_dev/intercambio/astra/888&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\Caso1.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/opendev_dev/intercambio/astra/888/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\Holashift_astra_2023Feb02180244_888 (2).json&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\Holashift_astra_2023Feb02180244_888.json&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 856/122 az" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/opendev_dev/intercambio/astra/856&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\20230207125701056-Astrazeneca_856_caso2.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/opendev_dev/intercambio/astra/856/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\20230207125701056-Astrazeneca_856_caso2.txt&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;C:\Users\flore\OneDrive\Escritorio\open dev\open dev\888\astrazeneca\Astrazeneca_856_caso2.txt&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 947/126 az" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/abbvie_qa/intercambio/856_122&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;C:\Users\flore\OneDrive\Escritorio\descarga\947.126az_1_20230209110241731.txt&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/opendev_dev/intercambio/astra/947/output&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;shift_astra_20230209110234_947.json&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;shift_astra_20230209110234_947.json&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Integracion 940/124 az" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.*;
+import java.io.*;
+
+String SFTPHOST = &quot;169.57.220.38&quot;; // Reemplaza &quot;hostname&quot; con la dirección IP o el nombre del servidor remoto
+int    SFTPPORT = 22;
+String SFTPUSER = &quot;opendev_qa&quot;; // Reemplaza &quot;username&quot; con tu nombre de usuario en el servidor remoto
+String SFTPPASS = &quot;Open1986@!&quot;; // Reemplaza &quot;password&quot; con tu contraseña en el servidor remoto
+String SFTPWORKINGDIR = &quot;/opendev_dev/intercambio/astra/940&quot;; // Reemplaza &quot;/remote/path/to/upload&quot; con la ruta remota donde quieres subir el archivo
+
+String FILENAME = &quot;0230106185933484-Caso de prueba 940.EDI&quot;; // Reemplaza &quot;path/to/local/file&quot; con la ruta local del archivo que quieres subir
+
+JSch jsch = new JSch();
+Session session = null;
+try {
+    session = jsch.getSession(SFTPUSER,SFTPHOST,SFTPPORT);
+    session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;);
+    session.setPassword(SFTPPASS);
+    session.connect();
+    Channel channel = session.openChannel(&quot;sftp&quot;);
+    channel.connect();
+    ChannelSftp sftpChannel = (ChannelSftp) channel;
+    sftpChannel.cd(SFTPWORKINGDIR);
+    File localFile = new File(FILENAME);
+    if (!localFile.exists()) {
+        throw new FileNotFoundException(&quot;Local file not found&quot;);
+    }
+    sftpChannel.put(new FileInputStream(localFile), localFile.getName());
+    sftpChannel.exit();
+    session.disconnect();
+} catch (JSchException | SftpException | FileNotFoundException e) {
+    e.printStackTrace();
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
+import com.jcraft.jsch.ChannelSftp.LsEntry
+
+def downloadDir = &quot;C:\\Users\\Usuario\\Desktop\\descargas&quot;
+def remoteDir = &quot;/opendev_dev/intercambio/astra/940&quot;
+
+// Connect to SFTP server
+def jsch = new com.jcraft.jsch.JSch()
+def session = jsch.getSession(&quot;opendev_qa&quot;, &quot;169.57.220.38&quot;, 22)
+session.setPassword(&quot;Open1986@!&quot;)
+session.setConfig(&quot;StrictHostKeyChecking&quot;, &quot;no&quot;)
+session.connect()
+
+// Create SFTP channel
+def channel = session.openChannel(&quot;sftp&quot;) as ChannelSftp
+channel.connect()
+
+// Get the latest file in remote directory
+def latestFile
+def files = channel.ls(remoteDir)
+files.each { LsEntry entry -&gt;
+    if (!entry.getAttrs().isDir()) {
+        if (latestFile == null || latestFile.getAttrs().getMTime() &lt; entry.getAttrs().getMTime()) {
+            latestFile = entry
+        }
+    }
+}
+
+// Download the latest file
+if (latestFile != null) {
+    def remoteFile = remoteDir + &quot;/&quot; + latestFile.getFilename()
+    def localFile = downloadDir + &quot;\\&quot; + latestFile.getFilename()
+    channel.get(remoteFile, localFile)
+}
+
+// Disconnect from SFTP server
+channel.disconnect()
+session.disconnect()</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// Leer el contenido del primer archivo
+def archivo1 = new File(&quot;shift_astra_20230207112950_940.json&quot;)
+def contenidoArchivo1 = new String(java.nio.file.Files.readAllBytes(archivo1.toPath()))
+
+// Leer el contenido del segundo archivo
+def archivo2 = new File(&quot;shift_astra_20230207112950_940.json&quot;)
+def contenidoArchivo2 = new String(java.nio.file.Files.readAllBytes(archivo2.toPath()))
+
+// Comparar los contenidos de ambos archivos
+if (contenidoArchivo1.equals(contenidoArchivo2)) {
+    // Los contenidos son iguales
+    log.info(&quot;Los contenidos son iguales&quot;)
+} else {
+    // Los contenidos no son iguales
+    log.info(&quot;Los contenidos no son iguales&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <threadCounts>true</threadCounts>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
